@@ -1,73 +1,49 @@
-import {StyleSheet, Platform} from 'react-native';
-import * as defaultStyle from '../../style';
-import {Theme} from '../../types';
-import constants from '../../commons/constants';
+import {StyleSheet} from 'react-native';
 
-export default function (theme: Theme = {}) {
-  const appStyle = {...defaultStyle, ...theme};
-  const rtlStyle = constants.isRTL ? {transform: [{scaleX: -1}]} : undefined;
-
+export default function (theme = {}) {
   return StyleSheet.create({
-    header: {
+    contentContainer: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
-      paddingLeft: 10,
-      paddingRight: 10,
-      marginTop: 6,
       alignItems: 'center',
+      justifyContent: 'space-between',
+      ...theme.stylesheet.calendar.header.contentContainer
     },
-    partialHeader: {
-      paddingHorizontal: 15
-    },
-    headerContainer: {
-      flexDirection: 'row'
+    monthAndYearContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      ...theme.stylesheet.calendar.header.monthAndYearContainer
     },
     monthText: {
-      fontSize: appStyle.textMonthFontSize,
-      fontFamily: appStyle.textMonthFontFamily,
-      fontWeight: appStyle.textMonthFontWeight,
-      color: appStyle.monthTextColor,
-      margin: 10
+      ...theme.stylesheet.calendar.header.monthText
+    },
+    yearText: {
+      ...theme.stylesheet.calendar.header.yearText
+    },
+    arrowsContainer: {
+      ...theme.stylesheet.calendar.header.arrowsContainer
+    },
+    rightArrowContainer: {
+      ...theme.stylesheet.calendar.header.rightArrowContainer
     },
     arrow: {
-      padding: 10,
-      ...appStyle.arrowStyle
+      ...theme.stylesheet.calendar.header.arrow
     },
     arrowImage: {
-      ...rtlStyle,
-      tintColor: appStyle.arrowColor,
-      ...Platform.select({
-        web: {
-          width: appStyle.arrowWidth,
-          height: appStyle.arrowHeight
-        }
-      })
+      ...theme.stylesheet.calendar.header.arrowImage
     },
     disabledArrowImage: {
-      ...rtlStyle,
-      tintColor: appStyle.disabledArrowColor
+      ...theme.stylesheet.calendar.header.disabledArrowImage
     },
-    week: {
-      marginTop: 7,
+    weekDaysContainer: {
       flexDirection: 'row',
-      justifyContent: 'space-around',
+      justifyContent: 'space-between',
+      ...theme.stylesheet.calendar.header.weekDaysContainer
     },
-    partialWeek: {
-      paddingRight: 0
+    weekDay: {
+      ...theme.stylesheet.calendar.header.weekDay
     },
-    dayHeader: {
-      marginTop: 2,
-      marginBottom: 7,
-      width: 32,
-      textAlign: 'center',
-      fontSize: appStyle.textDayHeaderFontSize,
-      fontFamily: appStyle.textDayHeaderFontFamily,
-      fontWeight: appStyle.textDayHeaderFontWeight,
-      color: appStyle.textSectionTitleColor
-    },
-    disabledDayHeader: {
-      color: appStyle.textSectionTitleDisabledColor
-    },
-    ...(theme['stylesheet.calendar.header'] || {})
+    disabledWeekDay: {
+      ...theme.stylesheet.calendar.header.disabledWeekDay
+    }
   });
 }

@@ -1,30 +1,30 @@
 import includes from 'lodash/includes';
 import XDate from 'xdate';
 
-import React, {Fragment, ReactNode, useCallback, useMemo, forwardRef, useImperativeHandle, useRef} from 'react';
+import React, {ReactNode, useCallback, useMemo, forwardRef, useImperativeHandle} from 'react';
 import {
   ActivityIndicator,
-  Platform,
   View,
   Text,
   TouchableOpacity,
   Image,
   StyleProp,
   ViewStyle,
-  AccessibilityActionEvent,
   ColorValue,
   Insets
 } from 'react-native';
-import {formatNumbers, weekDayNames} from '../../dateutils';
+import {weekDayNames} from '../../dateutils';
 import styleConstructor from './style';
 import {Theme, Direction} from '../../types';
+
+import ArrowLeft from '../img/arrow_back_24dp.png';
+import ArrowRight from '../img/arrow_forward_24dp.png';
 
 export interface CalendarHeaderProps {
   /** The current month presented in the calendar */
   month?: XDate;
   /** A callback for when a month is changed from the headers arrows */
   addMonth?: (num: number) => void;
-  
   /** The current date presented */
   current?: string;
   /** Specify theme properties to override specific styles for calendar parts */
@@ -86,51 +86,25 @@ const CalendarHeader = forwardRef((props: CalendarHeaderProps, ref) => {
     style: propsStyle,
     addMonth: propsAddMonth,
     month,
-    monthFormat,
     firstDay,
-    hideDayNames,
-    showWeekNumbers,
-    hideArrows,
-    renderArrow,
     onPressArrowLeft,
     onPressArrowRight,
-    arrowsHitSlop = 20,
     disableArrowLeft,
     disableArrowRight,
     disabledDaysIndexes,
     displayLoadingIndicator,
-    customHeaderTitle,
-    renderHeader,
-    webAriaLevel,
     testID,
-    accessibilityElementsHidden,
-    importantForAccessibility,
     numberOfDays,
-    current = '',
-    timelineLeftInset
+    current = ''
   } = props;
-  
+
   const numberOfDaysCondition = useMemo(() => {
     return numberOfDays && numberOfDays > 1;
   }, [numberOfDays]);
-  const style = useRef(styleConstructor(theme));
-  const headerStyle = useMemo(() => {
-    return [style.current.header, numberOfDaysCondition ? style.current.partialHeader : undefined];
-  }, [numberOfDaysCondition]);
-  const partialWeekStyle = useMemo(() => {
-    return [style.current.partialWeek, {paddingLeft: timelineLeftInset}];
-  }, [timelineLeftInset]);
-  const dayNamesStyle = useMemo(() => {
-    return [style.current.week, numberOfDaysCondition ? partialWeekStyle : undefined];
-  }, [numberOfDaysCondition, partialWeekStyle]);
-  const hitSlop: Insets | undefined = useMemo(
-    () =>
-      typeof arrowsHitSlop === 'number'
-        ? {top: arrowsHitSlop, left: arrowsHitSlop, bottom: arrowsHitSlop, right: arrowsHitSlop}
-        : arrowsHitSlop,
-    [arrowsHitSlop]
-  );
-  
+  const style = useMemo(() => {
+    return styleConstructor(theme);
+  }, []);
+
   useImperativeHandle(ref, () => ({
     onPressLeft,
     onPressRight
@@ -158,147 +132,107 @@ const CalendarHeader = forwardRef((props: CalendarHeaderProps, ref) => {
     return addMonth();
   }, [onPressArrowRight, addMonth, month]);
 
-  const onAccessibilityAction = useCallback((event: AccessibilityActionEvent) => {
-    switch (event.nativeEvent.actionName) {
-      case 'decrement':
-        onPressLeft();
-        break;
-      case 'increment':
-        onPressRight();
-        break;
-      default:
-        break;
-    }
-  }, [onPressLeft, onPressRight]);
-
   const renderWeekDays = useMemo(() => {
     const dayOfTheWeek = new XDate(current).getDay();
     const weekDaysNames = numberOfDaysCondition ? weekDayNames(dayOfTheWeek) : weekDayNames(firstDay);
     const dayNames = numberOfDaysCondition ? weekDaysNames.slice(0, numberOfDays) : weekDaysNames;
 
-    return dayNames.map((day: string, index: number) => {
-      const dayStyle = [style.current.dayHeader];
+    return dayNames.map((day, index) => {
+      const dayStyle = [style.weekDay];
 
       if (includes(disabledDaysIndexes, index)) {
-        dayStyle.push(style.current.disabledDayHeader);
+        dayStyle.push(style.disabledWeekDay);
       }
 
       const dayTextAtIndex = `dayTextAtIndex${index}`;
-      if (style.current[dayTextAtIndex]) {
-        dayStyle.push(style.current[dayTextAtIndex]);
+
+      if (style[dayTextAtIndex]) {
+        dayStyle.push(style[dayTextAtIndex]);
       }
 
       return (
-        <Text allowFontScaling={false} key={index} style={dayStyle} numberOfLines={1} accessibilityLabel={''}>
+        <Text key={index} allowFontScaling={false} style={dayStyle} numberOfLines={1}>
           {day}
         </Text>
       );
     });
-  }, [firstDay, current, numberOfDaysCondition, numberOfDays, disabledDaysIndexes]);
+  }, [firstDay, style, current, numberOfDaysCondition, numberOfDays, disabledDaysIndexes]);
 
-  const _renderHeader = () => {
-    const webProps = Platform.OS === 'web' ? {'aria-level': webAriaLevel} : {};
-
-    if (renderHeader) {
-      return renderHeader(month);
+  const renderIndicator = () => {
+    if (displayLoadingIndicator) {
+      return <ActivityIndicator color={theme?.indicatorColor as ColorValue} testID={`${testID}.loader`} />;
     }
+  };
 
-    if (customHeaderTitle) {
-      return customHeaderTitle;
+  const renderMonthAndYear = () => {
+    const _month = month?.toString('MMMM');
+    const _year = month?.toString('yyyy');
+
+    if (!_month || !_year) {
+      return;
     }
 
     return (
-      <Fragment>
-        <Text
-          allowFontScaling={false}
-          style={style.current.monthText}
-          testID={`${testID}.title`}
-          {...webProps}
-        >
-          {formatNumbers(month?.toString(monthFormat))}
+      <View style={style.monthAndYearContainer}>
+        <Text allowFontScaling={false} style={style.monthText}>
+          {_month}
         </Text>
-      </Fragment>
+        <Text allowFontScaling={false} style={style.yearText}>
+          {_year}
+        </Text>
+        {renderIndicator()}
+      </View>
     );
   };
 
-  const _renderArrow = (direction: Direction) => {
-    if (hideArrows) {
-      return <View/>;
-    }
+  const renderLeftArrow = () => {
+    const disabledStyle = disableArrowLeft ? style.disabledArrowImage : {};
 
-    const isLeft = direction === 'left';
-    const arrowId = isLeft ? 'leftArrow' : 'rightArrow';
-    const shouldDisable = isLeft ? disableArrowLeft : disableArrowRight;
-    const onPress = !shouldDisable ? isLeft ? onPressLeft : onPressRight : undefined;
-    const imageSource = isLeft ? require('../img/previous.png') : require('../img/next.png');
-    const renderArrowDirection = isLeft ? 'left' : 'right';   
-      
     return (
       <TouchableOpacity
-        onPress={onPress}
-        disabled={shouldDisable}
-        style={style.current.arrow}
-        hitSlop={hitSlop}
-        testID={`${testID}.${arrowId}`}
+        activeOpacity={0.8}
+        onPress={onPressLeft}
+        disabled={disableArrowLeft}
+        style={[style.arrow, disabledStyle]}
+        hitSlop={{top: 4, left: 4, bottom: 4, right: 4}}
       >
-        {renderArrow ? (
-          renderArrow(renderArrowDirection)
-        ) : (
-          <Image source={imageSource} style={shouldDisable ? style.current.disabledArrowImage : style.current.arrowImage}/>
-        )}
+        <Image source={ArrowLeft} style={style.arrowImage} />
       </TouchableOpacity>
     );
   };
 
-  const renderIndicator = () => {
-    if (displayLoadingIndicator) {
-      return (
-        <ActivityIndicator
-          color={theme?.indicatorColor as ColorValue}
-          testID={`${testID}.loader`}
-        />
-      );
-    }
+  const renderRightArrow = () => {
+    const disabledStyle = disableArrowRight ? style.disabledArrowImage : {};
+
+    return (
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={onPressRight}
+        disabled={disableArrowRight}
+        style={[style.arrow, style.rightArrowContainer, disabledStyle]}
+        hitSlop={{top: 4, left: 4, bottom: 4, right: 4}}
+      >
+        <Image source={ArrowRight} style={style.arrowImage} />
+      </TouchableOpacity>
+    );
   };
 
-  const renderWeekNumbersSpace = () => {
-    return showWeekNumbers && <View style={style.current.dayHeader} />;
-  };
-
-  const renderDayNames = () => {
-    if (!hideDayNames) {
-      return (
-        <View
-          style={dayNamesStyle}
-          testID={`${testID}.dayNames`}
-        >
-          {renderWeekNumbersSpace()}
-          {renderWeekDays}
-        </View>
-      );
-    }
+  const renderWeekDaysContainer = () => {
+    return <View style={style.weekDaysContainer}>{renderWeekDays}</View>;
   };
 
   return (
-    <View
-      testID={testID}
-      style={propsStyle}
-      accessible
-      accessibilityRole={'adjustable'}
-      accessibilityActions={accessibilityActions}
-      onAccessibilityAction={onAccessibilityAction}
-      accessibilityElementsHidden={accessibilityElementsHidden} // iOS
-      importantForAccessibility={importantForAccessibility} // Android
-    >
-      <View style={headerStyle}>
-        {_renderArrow('left')}
-        <View style={style.current.headerContainer}>
-          {_renderHeader()}
-          {renderIndicator()}
+    <View style={propsStyle}>
+      <View style={style.contentContainer}>
+        {renderMonthAndYear()}
+
+        <View style={style.arrowsContainer}>
+          {renderLeftArrow()}
+          {renderRightArrow()}
         </View>
-        {_renderArrow('right')}
       </View>
-      {renderDayNames()}
+
+      {renderWeekDaysContainer()}
     </View>
   );
 });
